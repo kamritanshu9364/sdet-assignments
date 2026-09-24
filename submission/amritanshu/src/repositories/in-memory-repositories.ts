@@ -1,3 +1,8 @@
+import type { Customer } from "../domain/customer.js";
+import type { Plan, PlanId } from "../domain/plan.js";
+import type { CustomerRepository } from "./customer-repository.js";
+import type { PlanRepository } from "./plan-repository.js";
+
 import type { AuditEvent } from "../domain/audit-event.js";
 import type { Invoice } from "../domain/invoice.js";
 import type { Payment } from "../domain/payment.js";
@@ -99,5 +104,29 @@ export class InMemoryAuditEventRepository
     return this.events.filter(
       (event) => event.subscriptionId === subscriptionId,
     );
+  }
+}export class InMemoryCustomerRepository
+  implements CustomerRepository
+{
+  private readonly customers = new Map<string, Customer>();
+
+  save(customer: Customer): void {
+    this.customers.set(customer.id, customer);
+  }
+
+  findById(id: string): Customer | undefined {
+    return this.customers.get(id);
+  }
+}
+
+export class InMemoryPlanRepository implements PlanRepository {
+  private readonly plans = new Map<PlanId, Plan>();
+
+  save(plan: Plan): void {
+    this.plans.set(plan.id, plan);
+  }
+
+  findById(id: PlanId): Plan | undefined {
+    return this.plans.get(id);
   }
 }
