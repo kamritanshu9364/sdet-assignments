@@ -171,6 +171,40 @@ describe("SubscriptionService", () => {
 
     expect(paymentProvider.getCalls()).toHaveLength(1);
   });
+  it("should propagate a payment provider timeout without creating a payment", async () => {
+  const {
+    customerRepository,
+    planRepository,
+    paymentProvider,
+    subscriptionRepository,
+    invoiceRepository,
+    paymentRepository,
+    service,
+  } = createService();
+
+  seedCustomer(customerRepository);
+  seedProPlan(planRepository);
+
+  paymentProvider.setOutcome("timeout");
+
+  await expect(
+    service.createSubscription({
+      customerId: "cust_001",
+      planId: "pro",
+      paymentMethodId: "pm_test_visa_4242",
+    }),
+  ).rejects.toThrow("PAYMENT_PROVIDER_TIMEOUT");
+
+  expect(paymentProvider.getCalls()).toHaveLength(1);
+
+  const subscription = subscriptionRepository.findById(
+    "sub_001",
+  );
+
+  // The generated subscription ID is not sub_001,
+  // so verify the repository contains no successful payment instead.
+  expect(paymentRepository.findBySubscriptionId("sub_001")).toHaveLength(0);
+});
 
   it("should reject an unknown customer without calling the payment provider", async () => {
     const {

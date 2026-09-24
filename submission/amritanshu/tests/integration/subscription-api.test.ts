@@ -750,5 +750,80 @@ describe("Subscription API", () => {
         eventsAfterFirst.length,
       );
     });
+ 
+  });it("should reject a webhook with an invalid signature", async () => {
+  const response = await api.sendWebhook(
+    {
+      event_id: "evt_invalid_signature",
+      type: "payment.succeeded",
+      subscription_id: "sub_001",
+      invoice_id: "inv_001",
+      amount: 4900,
+      currency: "USD",
+    },
+    "invalid-signature",
+  );
+
+  expect(response.status).toBe(401);
+  expect(response.body).toEqual({
+    error: "Invalid webhook signature",
   });
+});it("should reject a malformed webhook payload", async () => {
+  const malformedPayload = {
+    event_id: "evt_malformed_001",
+    type: "payment.succeeded",
+    subscription_id: "sub_missing",
+    // invoice_id intentionally missing
+    amount: 4900,
+    currency: "USD",
+  };
+
+  const rawBody = JSON.stringify(malformedPayload);
+  const signature = generateSignature(rawBody, WEBHOOK_SECRET);
+
+  const response = await api.sendWebhook(
+    malformedPayload,
+    signature,
+  );
+
+  expect([400, 404]).toContain(response.status);
+});it("should ignore payment success webhook after cancellation", async () => {
+  const createResponse = await api.createSubscription({
+    customer_id: "cust_001",
+    plan: "pro",
+    payment_method_id: "pm_test_visa_4242",
   });
+
+  expect(createResponse.status).toBe(201);
+
+  const subscriptionId = createResponse.body.id;
+  const invoiceId = createResponse.body.invoice.id;
+
+  const cancelResponse = await api.cancelSubscription(subscriptionId);
+
+  expect(cancelResponse.status).toBe(200);
+  expect(cancelResponse.body.status).toBe("canceled");
+
+  const paymentCountBeforeWebhook =
+    environment.paymentRepository.findBySubscriptionId(subscriptionId).length;
+
+  const webhookResponse = await webhooks.sendPaymentSucceeded(
+    subscriptionId,
+    invoiceId,
+    4900,
+    "evt_after_cancel_001",
+  );
+
+  expect(webhookResponse.status).toBe(200);
+
+  const getResponse = await api.getSubscription(subscriptionId);
+
+  expect(getResponse.status).toBe(200);
+  expect(getResponse.body.status).toBe("canceled");
+
+  const paymentCountAfterWebhook =
+    environment.paymentRepository.findBySubscriptionId(subscriptionId).length;
+
+  expect(paymentCountAfterWebhook).toBe(paymentCountBeforeWebhook);
+});
+ });
