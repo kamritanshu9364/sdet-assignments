@@ -1,0 +1,23 @@
+{
+  "name": "subscription-billing-sdet-assignment",
+  "version": "1.0.0",
+  "description": "SDET automation assignment for Subscription and Billing Service",
+  "main": "dist/src/app.js",
+  "scripts": {
+    "dev": "tsx src/app.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "sdet",
+    "automation",
+    "typescript",
+    "vitest",
+    "api-testing"
+  ],
+  "author": "Kumar Amritanshu",
+  "license": "ISC",
+  "type": "module"
+}
